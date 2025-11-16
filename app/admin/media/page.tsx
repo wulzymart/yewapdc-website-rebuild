@@ -23,18 +23,6 @@ function parseMediaType(value?: string): MediaType | undefined {
   return undefined;
 }
 
-function formatFileSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  let index = 0;
-  let value = bytes;
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024;
-    index += 1;
-  }
-  return `${value.toFixed(1)} ${units[index]}`;
-}
-
 export default async function AdminMediaPage({
   searchParams,
 }: {

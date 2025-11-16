@@ -2,6 +2,7 @@ import { config } from "dotenv";
 
 config({ path: ".env.local" });
 import { users, categories, siteSettings, navigationMenus } from "@/db/schema";
+import type { NavItem } from "@/lib/services/settings-service";
 
 async function main() {
   const { db } = await import("@/lib/db/drizzle");
@@ -56,22 +57,26 @@ async function main() {
   // Basic navigation menus
   const existingMenus = await db.select().from(navigationMenus).limit(1);
   if (existingMenus.length === 0) {
+    const headerItems: NavItem[] = [
+      { label: "Home", url: "/", external: false, children: undefined },
+      { label: "Articles", url: "/articles", external: false, children: undefined },
+      { label: "Events", url: "/events", external: false, children: undefined },
+    ];
+
+    const footerItems: NavItem[] = [
+      { label: "Privacy", url: "/privacy", external: false, children: undefined },
+    ];
+
     await db.insert(navigationMenus).values([
       {
         location: "HEADER",
-        items: [
-          { title: "Home", url: "/" },
-          { title: "Articles", url: "/articles" },
-          { title: "Events", url: "/events" },
-        ],
+        items: headerItems,
       },
       {
         location: "FOOTER",
-        items: [
-          { title: "Privacy", url: "/privacy" },
-        ],
+        items: footerItems,
       },
-    ] as any);
+    ]);
   }
 }
 

@@ -1,4 +1,6 @@
 import { env } from "@/lib/utils/env";
+import { localStorageAdapter } from "@/lib/storage/local-storage";
+import { s3StorageAdapter } from "@/lib/storage/s3-storage";
 
 export type StorageProvider = "local" | "s3" | "supabase";
 
@@ -30,18 +32,15 @@ export function getStorageAdapter(): StorageAdapter {
   if (cachedAdapter) return cachedAdapter;
 
   if (env.STORAGE_PROVIDER === "local") {
-    const { localStorageAdapter } = require("@/lib/storage/local-storage") as typeof import("@/lib/storage/local-storage");
     cachedAdapter = localStorageAdapter;
     return cachedAdapter;
   }
 
   if (env.STORAGE_PROVIDER === "s3") {
-    const { s3StorageAdapter } = require("@/lib/storage/s3-storage") as typeof import("@/lib/storage/s3-storage");
     cachedAdapter = s3StorageAdapter;
     return cachedAdapter;
   }
 
-  const { localStorageAdapter } = require("@/lib/storage/local-storage") as typeof import("@/lib/storage/local-storage");
   cachedAdapter = localStorageAdapter;
   return cachedAdapter;
 }

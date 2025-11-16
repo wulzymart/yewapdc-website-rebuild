@@ -44,7 +44,7 @@ export default async function EditPersonPage({ params }: EditPersonPageProps) {
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight">Edit Person</h1>
           <p className="text-sm text-[var(--color-muted)]">
-            Update this person's details and office assignments.
+            Update this person&apos;s details and office assignments.
           </p>
         </div>
         <div className="flex items-center gap-2">

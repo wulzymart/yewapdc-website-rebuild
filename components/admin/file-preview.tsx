@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import type { MediaRecord } from "@/lib/services/media-service";
 
 interface FilePreviewProps {
@@ -23,12 +25,14 @@ export function FilePreview({ item }: FilePreviewProps) {
 
   return (
     <article className="flex flex-col gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-card)] p-2 text-xs">
-      <div className="aspect-video overflow-hidden rounded-md bg-[var(--color-muted)]">
+      <div className="relative aspect-video overflow-hidden rounded-md bg-[var(--color-muted)]">
         {isImage ? (
-          <img
+          <Image
             src={item.thumbnailUrl ?? item.url}
             alt={item.altText ?? item.originalFilename}
-            className="h-full w-full object-cover"
+            fill
+            sizes="(min-width: 768px) 200px, 100vw"
+            className="object-cover"
           />
         ) : isVideo ? (
           <video

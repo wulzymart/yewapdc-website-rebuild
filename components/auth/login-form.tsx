@@ -8,6 +8,18 @@ import { useRouter } from "next/navigation";
 import { ToastBanner } from "@/components/admin/toast-banner";
 import { authClient } from "@/lib/auth/auth-client";
 
+function isForbiddenError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { status?: number };
+  return candidate.status === 403;
+}
+
+function getErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const candidate = error as { message?: string };
+  return candidate.message;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -32,10 +44,10 @@ export function LoginForm() {
           setError(null);
         },
         onError: (ctx) => {
-          if ((ctx.error as any)?.status === 403) {
+          if (isForbiddenError(ctx.error)) {
             setError("Please verify your email address. We just sent you a verification link.");
           } else {
-            setError(ctx.error.message ?? "Invalid email or password");
+            setError(getErrorMessage(ctx.error) ?? "Invalid email or password");
           }
         },
         onSuccess: () => {
@@ -45,10 +57,10 @@ export function LoginForm() {
     );
 
     if (signInError) {
-      if ((signInError as any)?.status === 403) {
+      if (isForbiddenError(signInError)) {
         setError("Please verify your email address. We just sent you a verification link.");
       } else {
-        setError(signInError.message ?? "Invalid email or password");
+        setError(getErrorMessage(signInError) ?? "Invalid email or password");
       }
       setLoading(false);
       return;

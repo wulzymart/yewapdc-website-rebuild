@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { PromotionBanner } from "@/components/public/promotion-banner";
 
 export const revalidate = 60;
@@ -23,7 +25,7 @@ export default function Home() {
         <PromotionBanner position="HERO" />
 
         <div className="grid gap-4 text-sm md:grid-cols-2">
-          <a
+          <Link
             href="/articles"
             className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-4 transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-card)]/80"
           >
@@ -31,8 +33,8 @@ export default function Home() {
             <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
               Read stories, announcements, and reflections from YEWAPDC programs and partners.
             </p>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/events"
             className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-4 transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-card)]/80"
           >
@@ -40,7 +42,7 @@ export default function Home() {
             <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
               Find upcoming programs, trainings, and community gatherings in Yewaland and beyond.
             </p>
-          </a>
+          </Link>
         </div>
       </section>
     </main>

@@ -43,7 +43,12 @@ function createInternalItems(items: NavItem[]): InternalNavItem[] {
 }
 
 function toNavItems(items: InternalNavItem[]): NavItem[] {
-  return items.map(({ id: _id, ...rest }) => rest);
+  return items.map((item) => ({
+    label: item.label,
+    url: item.url,
+    external: item.external,
+    children: item.children,
+  }));
 }
 
 interface SortableItemProps {
