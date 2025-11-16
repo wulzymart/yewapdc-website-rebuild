@@ -19,6 +19,8 @@ export const articleStatusEnum = pgEnum("article_status", ["DRAFT", "PUBLISHED",
 
 export const eventStatusEnum = pgEnum("event_status", ["DRAFT", "PUBLISHED"]);
 
+export const workflowStateEnum = pgEnum("workflow_state", ["DRAFT", "IN_REVIEW", "READY_FOR_PUBLISH"]);
+
 export const storageProviderEnum = pgEnum("storage_provider", ["LOCAL", "S3", "SUPABASE"]);
 
 export const mediaTypeEnum = pgEnum("media_type", ["IMAGE", "VIDEO", "AUDIO", "DOCUMENT"]);
@@ -102,6 +104,7 @@ export const articles = pgTable("articles", {
   excerpt: text("excerpt"),
   featuredImageId: uuid("featured_image_id").references(() => media.id),
   status: articleStatusEnum("status").notNull().default("DRAFT"),
+  workflowState: workflowStateEnum("workflow_state").notNull().default("DRAFT"),
   categoryId: uuid("category_id").references(() => categories.id),
   authorId: text("author_id").references(() => users.id).notNull(),
   publishedAt: timestamp("published_at", { withTimezone: true }),
@@ -110,6 +113,9 @@ export const articles = pgTable("articles", {
   seoDescription: text("seo_description"),
   seoKeywords: text("seo_keywords").array(),
   ogImageId: uuid("og_image_id").references(() => media.id),
+  submittedForReviewAt: timestamp("submitted_for_review_at", { withTimezone: true }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewedBy: text("reviewed_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -128,8 +134,12 @@ export const events = pgTable("events", {
   location: text("location"),
   categoryId: uuid("category_id").references(() => categories.id),
   status: eventStatusEnum("status").notNull().default("DRAFT"),
+  workflowState: workflowStateEnum("workflow_state").notNull().default("DRAFT"),
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
+  submittedForReviewAt: timestamp("submitted_for_review_at", { withTimezone: true }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewedBy: text("reviewed_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

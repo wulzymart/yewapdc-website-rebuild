@@ -5,7 +5,8 @@ import { DevSignupForm } from "@/components/auth/dev-signup-form";
 import { auth } from "@/lib/auth";
 
 export default async function DevSignupPage() {
-  if (process.env.NODE_ENV !== "development") {
+  const env = process.env.NODE_ENV ?? "development";
+  if (env !== "development" && env !== "test") {
     redirect("/");
   }
 

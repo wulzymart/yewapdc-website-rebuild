@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## YEWAPDC Website CMS
+
+This repository contains a custom content management system (CMS) and public site for the Yewa People\'s Development Council, built on the [Next.js](https://nextjs.org) App Router with a PostgreSQL backend and Drizzle ORM.
+
+Admins can manage articles, events, promotions, media, persons/offices, and global site configuration (settings and navigation), while visitors see a public-facing site with articles, events, and promotion banners.
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies and run the development server:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Key URLs
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/admin` – CMS dashboard (login required).
+- `/articles` – Public article listing and search.
+- `/articles/[slug]` – Public article detail.
+- `/events` – Public events listing with list/calendar toggle and filters.
+- `/events/[slug]` – Public event detail.
 
-## Learn More
+Admin pages are available under `/admin/*` for articles, events, promotions, media, persons, offices, and settings.
 
-To learn more about Next.js, take a look at the following resources:
+### Tests
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project includes unit, integration, and E2E tests.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Integration tests** (services and workflows):
 
+  ```bash
+  pnpm test -- tests/integration
+  ```
+
+- **Playwright E2E tests** (core CMS flows):
+
+  ```bash
+  pnpm playwright test
+  ```
+
+Make sure `DATABASE_URL` points to a test database when running integration and E2E tests.
+
+### Further Docs
+
+See `specs/001-custom-cms/quickstart.md` and `specs/001-custom-cms/tasks.md` for a detailed breakdown of phases, tasks, and architecture.
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The easiest way to deploy this Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme). For production, ensure environment variables (database, auth, storage) are configured as described in the quickstart.

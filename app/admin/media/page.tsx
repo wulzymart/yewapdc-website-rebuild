@@ -1,6 +1,10 @@
 import Link from "next/link";
 
+import { mediaFolders } from "@/db/schema";
 import { ToastBanner } from "@/components/admin/toast-banner";
+import { FolderTree } from "@/components/admin/folder-tree";
+import { FilePreview } from "@/components/admin/file-preview";
+import { db } from "@/lib/db/drizzle";
 import { listMedia, type MediaType } from "@/lib/services/media-service";
 
 type SearchParams = {
@@ -39,10 +43,17 @@ export default async function AdminMediaPage({
   const resolvedParams = await searchParams;
   const type = parseMediaType(resolvedParams.type);
   const search = resolvedParams.q?.toString() ?? "";
-  const items = await listMedia({
-    type,
-    search: search || undefined,
-  });
+  const folderIdParam = resolvedParams.folderId;
+  const folderId = typeof folderIdParam === "string" && folderIdParam ? folderIdParam : undefined;
+
+  const [items, folders] = await Promise.all([
+    listMedia({
+      type,
+      search: search || undefined,
+      folderId: folderId ?? undefined,
+    }),
+    db.select().from(mediaFolders),
+  ]);
 
   return (
     <section className="space-y-4">
@@ -68,78 +79,61 @@ export default async function AdminMediaPage({
           message="Your file has been uploaded to the media library."
         />
       )}
-
-      <form className="flex flex-wrap items-end gap-3" method="get">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="q" className="text-xs font-medium text-[var(--color-muted)]">
-            Search
-          </label>
-          <input
-            id="q"
-            name="q"
-            defaultValue={search}
-            className="h-9 rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-sm"
-            placeholder="Filename, caption, description…"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="type" className="text-xs font-medium text-[var(--color-muted)]">
-            Type
-          </label>
-          <select
-            id="type"
-            name="type"
-            defaultValue={type ?? ""}
-            className="h-9 rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-sm"
-          >
-            <option value="">All</option>
-            <option value="IMAGE">Images</option>
-            <option value="VIDEO">Video</option>
-            <option value="AUDIO">Audio</option>
-            <option value="DOCUMENT">Documents</option>
-          </select>
-        </div>
-        <button
-          type="submit"
-          className="h-9 rounded-md bg-[var(--color-secondary)] px-3 text-sm font-medium text-[var(--color-secondary-foreground)]"
-        >
-          Apply
-        </button>
-      </form>
-
-      {items.length === 0 ? (
-        <p className="text-sm text-[var(--color-muted)]">No media found.</p>
-      ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
-          {items.map((item) => (
-            <article
-              key={item.id}
-              className="flex flex-col gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-card)] p-2 text-xs"
+      <div className="grid gap-6 md:grid-cols-[220px,1fr]">
+        <aside>
+          <FolderTree folders={folders} currentFolderId={folderId ?? null} />
+        </aside>
+        <div className="space-y-4">
+          <form className="flex flex-wrap items-end gap-3" method="get">
+            <input type="hidden" name="folderId" value={folderId ?? ""} />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="q" className="text-xs font-medium text-[var(--color-muted)]">
+                Search
+              </label>
+              <input
+                id="q"
+                name="q"
+                defaultValue={search}
+                className="h-9 rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-sm"
+                placeholder="Filename, caption, description…"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="type" className="text-xs font-medium text-[var(--color-muted)]">
+                Type
+              </label>
+              <select
+                id="type"
+                name="type"
+                defaultValue={type ?? ""}
+                className="h-9 rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-sm"
+              >
+                <option value="">All</option>
+                <option value="IMAGE">Images</option>
+                <option value="VIDEO">Video</option>
+                <option value="AUDIO">Audio</option>
+                <option value="DOCUMENT">Documents</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="h-9 rounded-md bg-[var(--color-secondary)] px-3 text-sm font-medium text-[var(--color-secondary-foreground)]"
             >
-              <div className="aspect-video overflow-hidden rounded-md bg-[var(--color-muted)]">
-                {item.type === "IMAGE" ? (
-                  <img
-                    src={item.thumbnailUrl ?? item.url}
-                    alt={item.altText ?? item.originalFilename}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[var(--color-muted-foreground)]">
-                    <span>{item.type.toLowerCase()}</span>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-1">
-                <div className="truncate font-medium">{item.originalFilename}</div>
-                <div className="flex justify-between text-[0.7rem] text-[var(--color-muted)]">
-                  <span>{item.type}</span>
-                  {typeof item.size === "number" && <span>{formatFileSize(item.size)}</span>}
-                </div>
-              </div>
-            </article>
-          ))}
+              Apply
+            </button>
+          </form>
+
+          {items.length === 0 ? (
+            <p className="text-sm text-[var(--color-muted)]">No media found.</p>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+              {items.map((item) => (
+                <FilePreview key={item.id} item={item} />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </section>
   );
 }

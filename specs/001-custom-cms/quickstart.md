@@ -92,10 +92,12 @@ Then visit:
 
 - `http://localhost:3000/admin` – CMS dashboard (login required).
 - `http://localhost:3000/` – Public homepage with active promotions.
-- `http://localhost:3000/(public)/articles` – Article listing.
-- `http://localhost:3000/(public)/events` – Event listing with calendar.
+- `http://localhost:3000/articles` – Public article listing with search and pagination.
+- `http://localhost:3000/articles/[slug]` – Public article detail page.
+- `http://localhost:3000/events` – Public events listing with list/calendar toggle and filters.
+- `http://localhost:3000/events/[slug]` – Public event detail page.
 
-> The exact public paths may differ slightly based on the final routing setup; align with `app/(public)` configuration.
+All public routes are implemented under `app/(public)` but are exposed without the `(public)` segment in the URL.
 
 ---
 

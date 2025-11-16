@@ -42,3 +42,17 @@ export async function createResponsiveVariants(
 
   return variants;
 }
+
+export async function resizeImage(buffer: Buffer, width: number): Promise<Buffer> {
+  return sharp(buffer).resize({ width }).toBuffer();
+}
+
+export async function cropToAspectRatio(
+  buffer: Buffer,
+  width: number,
+  height: number,
+): Promise<Buffer> {
+  return sharp(buffer)
+    .resize({ width, height, fit: "cover" })
+    .toBuffer();
+}

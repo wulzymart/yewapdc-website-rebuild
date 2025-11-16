@@ -8,7 +8,7 @@ import { users } from "@/db/schema";
 import { LogoutButton } from "@/components/admin/logout-button";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/drizzle";
-import { canManageUsers, canViewAdmin, type UserRole } from "@/lib/auth/permissions";
+import { canManageUsers, canPublish, canViewAdmin, type UserRole } from "@/lib/auth/permissions";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -26,12 +26,18 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="min-h-screen flex bg-[var(--background)] text-[var(--foreground)]">
+      <a
+        href="#admin-main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-[var(--color-background)] focus:px-3 focus:py-2 focus:text-sm focus:shadow"
+      >
+        Skip to main content
+      </a>
       <aside className="w-64 border-r border-[var(--color-accent-dark)] p-4 space-y-4 bg-[var(--color-background)]/60">
         <div className="space-y-1">
           <h1 className="text-lg font-semibold tracking-tight">YEWAPDC Admin</h1>
           <p className="text-xs text-[var(--color-muted)]">Content management dashboard</p>
         </div>
-        <nav className="space-y-1 text-sm">
+        <nav className="space-y-1 text-sm" aria-label="Admin navigation">
           <Link href="/admin" className="block hover:text-[var(--color-accent)]">
             Dashboard
           </Link>
@@ -44,6 +50,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <Link href="/admin/promotions" className="block hover:text-[var(--color-accent)]">
             Promotions
           </Link>
+          {canPublish(role) && (
+            <Link href="/admin/review" className="block hover:text-[var(--color-accent)]">
+              Review queue
+            </Link>
+          )}
           <Link href="/admin/media" className="block hover:text-[var(--color-accent)]">
             Media library
           </Link>
@@ -61,7 +72,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </nav>
         <LogoutButton />
       </aside>
-      <main className="flex-1 p-6">{children}</main>
+      <main id="admin-main-content" className="flex-1 p-6">{children}</main>
     </div>
   );
 }

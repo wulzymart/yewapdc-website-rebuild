@@ -1,7 +1,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { ImageEditorControls } from "@/components/admin/image-editor";
 import { createMedia, type MediaType } from "@/lib/services/media-service";
+import { cropToAspectRatio, resizeImage } from "@/lib/utils/image-processor";
 
 function inferMediaType(mime: string): MediaType {
   if (mime.startsWith("image/")) return "IMAGE";
@@ -13,26 +15,52 @@ function inferMediaType(mime: string): MediaType {
 async function uploadMedia(formData: FormData) {
   "use server";
 
-  const file = formData.get("file");
-  if (!file || typeof file === "string") {
+  const rawFiles = formData.getAll("files");
+  const files = rawFiles.filter((value): value is File => typeof value !== "string");
+  if (files.length === 0) {
     throw new Error("No file uploaded");
   }
 
   const altText = formData.get("altText");
   const caption = formData.get("caption");
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const mimeType = file.type || "application/octet-stream";
-  const type = inferMediaType(mimeType);
+  const maxWidthRaw = formData.get("maxWidth");
+  const squareCropRaw = formData.get("squareCrop");
+  const generateVariantsRaw = formData.get("generateVariants");
 
-  await createMedia({
-    buffer,
-    originalFilename: file.name,
-    mimeType,
-    type,
-    altText: typeof altText === "string" ? altText : undefined,
-    caption: typeof caption === "string" ? caption : undefined,
-  });
+  const maxWidth =
+    typeof maxWidthRaw === "string" && maxWidthRaw.trim()
+      ? Number.parseInt(maxWidthRaw, 10)
+      : undefined;
+  const squareCrop = squareCropRaw === "on";
+  const generateVariants = generateVariantsRaw === "on";
+
+  for (const file of files) {
+    const originalBuffer = Buffer.from(await file.arrayBuffer());
+    const mimeType = file.type || "application/octet-stream";
+    const type = inferMediaType(mimeType);
+
+    let buffer = originalBuffer;
+
+    if (type === "IMAGE") {
+      if (squareCrop) {
+        const target = maxWidth && maxWidth > 0 ? maxWidth : 800;
+        buffer = await cropToAspectRatio(buffer, target, target);
+      } else if (maxWidth && maxWidth > 0) {
+        buffer = await resizeImage(buffer, maxWidth);
+      }
+    }
+
+    await createMedia({
+      buffer,
+      originalFilename: file.name,
+      mimeType,
+      type,
+      altText: typeof altText === "string" ? altText : undefined,
+      caption: typeof caption === "string" ? caption : undefined,
+      generateVariants: type === "IMAGE" ? generateVariants : false,
+    });
+  }
 
   revalidatePath("/admin/media");
   redirect("/admin/media?status=uploaded");
@@ -56,19 +84,23 @@ export default function MediaUploadPage() {
       >
         <div className="space-y-1">
           <label htmlFor="file" className="text-sm font-medium">
-            File
+            Files
           </label>
           <input
-            id="file"
-            name="file"
+            id="files"
+            name="files"
             type="file"
+            multiple
             required
             className="block w-full text-sm"
           />
           <p className="text-xs text-[var(--color-muted)]">
-            Max size depends on server limits. Images will get thumbnails automatically.
+            You can select one or more files. Max size depends on server limits. Images will get
+            thumbnails automatically.
           </p>
         </div>
+
+        <ImageEditorControls />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">

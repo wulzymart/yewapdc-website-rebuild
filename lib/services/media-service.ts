@@ -4,7 +4,7 @@ import path from "node:path";
 import { db, pool } from "@/lib/db/drizzle";
 import { media } from "@/db/schema";
 import { getStorageAdapter, type StorageProvider } from "@/lib/storage/storage-adapter";
-import { createThumbnail, getImageSize } from "@/lib/utils/image-processor";
+import { createResponsiveVariants, createThumbnail, getImageSize } from "@/lib/utils/image-processor";
 import { env } from "@/lib/utils/env";
 
 export type MediaRecord = typeof media.$inferSelect;
@@ -21,6 +21,8 @@ interface CreateMediaInput {
   altText?: string;
   caption?: string;
   description?: string;
+  generateVariants?: boolean;
+  variantWidths?: number[];
 }
 
 function mapStorageProvider(provider: StorageProvider): "LOCAL" | "S3" | "SUPABASE" {
@@ -50,6 +52,16 @@ export interface MediaFilter {
   type?: MediaType;
   folderId?: string | null;
   search?: string;
+  uploadedBy?: string;
+  from?: Date;
+  to?: Date;
+}
+
+export interface UpdateMediaInput {
+  altText?: string | null;
+  caption?: string | null;
+  description?: string | null;
+  folderId?: string | null;
 }
 
 export async function getMediaById(id: string): Promise<MediaRecord | null> {
@@ -59,6 +71,47 @@ export async function getMediaById(id: string): Promise<MediaRecord | null> {
 }
 
 export async function deleteMedia(id: string): Promise<void> {
+  const existing = await getMediaById(id);
+  if (!existing) {
+    return;
+  }
+
+  const storage = getStorageAdapter();
+
+  // Best-effort physical cleanup: original, thumbnail, and a small set of variant sizes.
+  const storagePath = existing.storagePath;
+  if (storagePath) {
+    try {
+      await storage.delete(storagePath);
+    } catch {
+      // ignore storage errors on delete
+    }
+
+    if (existing.type === "IMAGE") {
+      const parsed = path.parse(storagePath);
+      const baseDir = parsed.dir;
+      const baseName = parsed.name;
+      const ext = parsed.ext;
+
+      const thumbnailKey = `${baseDir}/thumbnails/${baseName}${ext}`;
+      try {
+        await storage.delete(thumbnailKey);
+      } catch {
+        // ignore
+      }
+
+      const variantWidths = [640, 1024, 1600];
+      for (const width of variantWidths) {
+        const variantKey = `${baseDir}/variants/${baseName}-${width}${ext}`;
+        try {
+          await storage.delete(variantKey);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }
+
   await pool.query('update "media" set "deleted_at" = now() where "id" = $1', [id]);
 }
 
@@ -85,6 +138,31 @@ export async function createMedia(input: CreateMediaInput): Promise<MediaRecord>
         contentType: input.mimeType,
       });
       thumbnailUrl = thumb.url;
+    }
+
+    if (input.generateVariants) {
+      const variants = await createResponsiveVariants(
+        input.buffer,
+        input.variantWidths && input.variantWidths.length > 0 ? input.variantWidths : [640, 1024, 1600],
+      );
+
+      for (const variant of variants) {
+        const parsed = path.parse(key);
+        const baseDir = parsed.dir;
+        const baseName = parsed.name;
+        const ext = parsed.ext;
+        const variantKey = `${baseDir}/variants/${baseName}-${variant.width}${ext}`;
+
+        try {
+          await storage.upload({
+            key: variantKey,
+            body: variant.buffer,
+            contentType: input.mimeType,
+          });
+        } catch {
+          // ignore individual variant failures; main upload and thumbnail still succeed
+        }
+      }
     }
   }
 
@@ -124,10 +202,49 @@ export async function createMedia(input: CreateMediaInput): Promise<MediaRecord>
   return created;
 }
 
+export async function updateMedia(id: string, input: UpdateMediaInput): Promise<MediaRecord> {
+  const existing = await getMediaById(id);
+  if (!existing) {
+    throw new Error("Media not found");
+  }
+
+  const setFragments: string[] = [];
+  const params: unknown[] = [];
+  let paramIndex = 2; // $1 reserved for id
+
+  const addSet = (column: string, value: unknown) => {
+    setFragments.push(`"${column}" = $${paramIndex}`);
+    params.push(value);
+    paramIndex += 1;
+  };
+
+  if (input.altText !== undefined) addSet("alt_text", input.altText);
+  if (input.caption !== undefined) addSet("caption", input.caption);
+  if (input.description !== undefined) addSet("description", input.description);
+  if (input.folderId !== undefined) addSet("folder_id", input.folderId);
+
+  // Always bump updated_at
+  setFragments.push('"updated_at" = now()');
+
+  const sql = `update "media" set ${setFragments.join(", ")} where "id" = $1 returning *`;
+  const result = await pool.query(sql, [id, ...params]);
+  const row = (result.rows[0] as MediaRecord | undefined) ?? null;
+
+  if (!row) {
+    throw new Error("Failed to update media");
+  }
+
+  return row;
+}
+
+export async function moveMedia(id: string, folderId: string | null): Promise<MediaRecord> {
+  return updateMedia(id, { folderId });
+}
+
 export async function listMedia(filter: MediaFilter = {}): Promise<MediaRecord[]> {
   const rows = await db.select().from(media);
 
-  const { type, folderId, search } = filter;
+  const { type, folderId, search, uploadedBy, from, to } = filter;
   const term = search?.trim().toLowerCase() ?? "";
 
   return rows.filter((row) => {
@@ -138,6 +255,15 @@ export async function listMedia(filter: MediaFilter = {}): Promise<MediaRecord[]
         return false;
       }
     }
+     if (uploadedBy && row.uploadedBy !== uploadedBy) {
+       return false;
+     }
+     if (from && row.createdAt < from) {
+       return false;
+     }
+     if (to && row.createdAt > to) {
+       return false;
+     }
     if (term) {
       const haystack = [
         row.filename,

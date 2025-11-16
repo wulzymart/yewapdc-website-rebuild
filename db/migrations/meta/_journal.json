@@ -29,6 +29,13 @@
       "when": 1763224432432,
       "tag": "0003_quick_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1763242729250,
+      "tag": "0004_loud_enchantress",
+      "breakpoints": true
     }
   ]
 }
