@@ -6,7 +6,7 @@ async function devSignupAndGoToAdmin(page: import("@playwright/test").Page) {
   await page.goto(`${BASE_URL}/dev-signup`);
 
   if (!page.url().endsWith("/dev-signup")) {
-    test.skip("Dev signup is disabled in this environment");
+    test.skip(true, "Dev signup is disabled in this environment");
   }
 
   const unique = Date.now();
@@ -22,6 +22,29 @@ async function devSignupAndGoToAdmin(page: import("@playwright/test").Page) {
 test.describe("CMS core flows", () => {
   test("dev signup can access admin dashboard and media library", async ({ page }) => {
     await devSignupAndGoToAdmin(page);
+
+    // Dashboard overview
+    await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible();
+    await expect(page.getByText(/overview of recent activity/i)).toBeVisible();
+
+    // Metric cards
+    await expect(page.getByText(/published articles/i)).toBeVisible();
+    await expect(page.getByText(/published events/i)).toBeVisible();
+    await expect(page.getByText(/active promotions/i)).toBeVisible();
+    await expect(page.getByText(/media items/i)).toBeVisible();
+
+    // Chart and schedule widgets
+    await expect(page.getByText(/articles over last 14 days/i)).toBeVisible();
+    await expect(page.getByText(/upcoming events & promotions/i)).toBeVisible();
+
+    // Recent activity section
+    await expect(page.getByRole("heading", { name: /recent activity/i })).toBeVisible();
+
+    // Sidebar navigation links
+    await expect(page.getByRole("link", { name: /dashboard/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /articles/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /events/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /media library/i })).toBeVisible();
 
     await page.goto(`${BASE_URL}/admin/articles`);
     await expect(page.getByRole("heading", { name: /articles/i })).toBeVisible();
